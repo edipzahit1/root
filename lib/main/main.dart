@@ -52,7 +52,8 @@ class _RootState extends State<Root> {
             return CircularProgressIndicator(); //opening screen
           } else {
             if (snapshot.hasData) {
-              return HomePage();
+              User? user = snapshot.data;
+              return HomePage(user: user!);
             } else {
               return SignInPage();              
             }

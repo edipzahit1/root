@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_place/google_place.dart';
@@ -13,9 +15,12 @@ class BuildMap extends StatefulWidget {
 }
 
 class _BuildMapState extends State<BuildMap> {
+  final places_API_KEY = dotenv.env["PLACES_API_KEY"];
+
   late GoogleMapController? googleMapController;
   late GooglePlace googlePlace;
   String? _mapStyle;
+  Set<Marker> _markers = {};
 
   @override
   void initState() {
@@ -26,14 +31,28 @@ class _BuildMapState extends State<BuildMap> {
   @override
   Widget build(BuildContext context) {
     return GoogleMap(
+      markers: _markers,
+      onLongPress: (LatLng latLng) async {
+          setState(() {
+            _onMapLongPress(latLng);
+            _markers.add(
+              Marker(
+                markerId: MarkerId(latLng.toString()),
+                position: latLng,
+                infoWindow: InfoWindow(
+                  title: 'Long Pressed Location',
+                ),
+              ),
+            );
+          });
+        },
       zoomControlsEnabled: false,
       onMapCreated: (controller) {
         googleMapController = controller;
         googleMapController!.setMapStyle(_mapStyle);
       },
-      initialCameraPosition: CameraPosition(
-        target: LatLng(42, -122),
-      ),
+      initialCameraPosition:
+          CameraPosition(target: LatLng(37.422, -122.084), zoom: 10),
     );
   }
 
@@ -84,5 +103,18 @@ class _BuildMapState extends State<BuildMap> {
     Position position = await Geolocator.getCurrentPosition();
 
     return position;
+  }
+
+  Future<void> _onMapLongPress(LatLng latLng) async {
+    List<Placemark> placemarks = await placemarkFromCoordinates(latLng.latitude, latLng.longitude);
+
+    if (placemarks.isNotEmpty) {
+      Placemark firstPlacemark = placemarks[0];
+
+      print('Name: ${firstPlacemark.name}');
+      print('Street: ${firstPlacemark.street}');
+      print('City: ${firstPlacemark.locality}');
+      print('Postal Code: ${firstPlacemark.postalCode}');
+    };
   }
 }

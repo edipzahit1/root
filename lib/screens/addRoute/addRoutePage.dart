@@ -3,20 +3,13 @@ import 'package:root/preferences/buttons.dart';
 import 'package:root/screens/addRoute/draggableSheet.dart';
 import 'package:root/screens/addRoute/locationPermissionHandler.dart';
 import 'package:root/screens/addRoute/mapBuilder.dart';
-import 'package:root/screens/addRoute/drawer.dart';
 
 class AddRoutePage extends StatefulWidget {
-  final int userID;
-  AddRoutePage({required this.userID});
-
   @override
-  State<AddRoutePage> createState() => _AddRoutePageState(userID: userID);
+  State<AddRoutePage> createState() => _AddRoutePageState();
 }
 
 class _AddRoutePageState extends State<AddRoutePage> {
-  int userID;
-  _AddRoutePageState({required this.userID});
-
   @override
   void initState() {
     super.initState();
@@ -28,6 +21,17 @@ class _AddRoutePageState extends State<AddRoutePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.level_1,
+        leading: CircleAvatar(
+          backgroundColor: AppColors.level_5,
+          child: BackButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           BuildMap(),
