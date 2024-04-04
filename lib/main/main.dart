@@ -2,8 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:root/preferences/buttons.dart';
 import 'package:root/screens/home/home.dart';
 import 'package:root/screens/signIn/signInPage.dart';
+
+User? globalUser;
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -26,8 +29,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(primaryColor: AppColors.level_1),
       debugShowCheckedModeBanner: false,
-      home: Root(),
+      home: const Root(),
     );
   }
 }
@@ -49,13 +53,13 @@ class _RootState extends State<Root> {
         stream: _auth.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return CircularProgressIndicator(); //opening screen
+            return const CircularProgressIndicator();
           } else {
             if (snapshot.hasData) {
-              User? user = snapshot.data;
-              return HomePage(user: user!);
+              globalUser = snapshot.data;
+              return HomePage();
             } else {
-              return SignInPage();              
+              return const SignInPage();              
             }
           }
         });

@@ -10,7 +10,7 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
-  GoogleAuth _auth = GoogleAuth();
+  final GoogleAuth _auth = GoogleAuth();
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class _SignInPageState extends State<SignInPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             buildAppLogo(),
-            SizedBox(height: 70),
+            const SizedBox(height: 70),
             buildGoogleSignInButton(),
           ],
         ),
@@ -31,12 +31,10 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Widget buildAppLogo() {
-    return Container(
-      child: CircleAvatar(
+    return const CircleAvatar(
         radius: 100,
         backgroundColor: AppColors.level_1,
-      ),
-    );
+      );
   }
 
   Widget buildGoogleSignInButton() {

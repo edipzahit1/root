@@ -1,24 +1,19 @@
-import 'dart:ui';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:root/authentication/googleAuth.dart';
+import 'package:root/main/main.dart';
 import 'package:root/preferences/buttons.dart';
 import 'package:root/screens/addRoute/addRoutePage.dart';
+import 'package:root/screens/myRoutes/myRoutes.dart';
+import 'package:root/models/route.dart' as RootRoute;
 
 class HomePage extends StatefulWidget {
-  final User user;
-
-  HomePage({required this.user});
-
   @override
-  State<HomePage> createState() => _HomePageState(user: user);
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  GoogleAuth _auth = GoogleAuth();
-  final User user;
-  _HomePageState({required this.user});
+  final GoogleAuth _auth = GoogleAuth();
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
@@ -30,10 +25,10 @@ class _HomePageState extends State<HomePage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image(
+          const Image(
             image: AssetImage("assets/background.png"),
           ),
-          buildUserMailAndPhoto(user),
+          buildUserMailAndPhoto(),
           Column(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,7 +44,9 @@ class _HomePageState extends State<HomePage> {
                 imageAsset: "assets/myroutes.png",
                 buttonText: "My Routes",
                 onPressed: () {
-                  // Handle onPressed action
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => MyRoutesPage(),
+                  ));
                 },
               ),
               CardButton(
@@ -73,7 +70,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget buildUserMailAndPhoto(User user) {
+  Widget buildUserMailAndPhoto() {
     return Padding(
       padding: const EdgeInsets.only(top: 100, left: 20),
       child: Column(
@@ -83,9 +80,9 @@ class _HomePageState extends State<HomePage> {
           CircleAvatar(
             radius: 60,
             backgroundColor: AppColors.level_5,
-            backgroundImage: NetworkImage(user.photoURL!),
+            backgroundImage: NetworkImage(globalUser!.photoURL!),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Container(
             width: 270,
             height: MediaQuery.of(context).size.height * 0.08,
@@ -97,12 +94,12 @@ class _HomePageState extends State<HomePage> {
               color: Colors.grey, // Set your desired background color
             ),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user.displayName ?? '',
+                    globalUser!.displayName ?? '',
                     style: const TextStyle(
                         overflow: TextOverflow.ellipsis,
                         fontFamily: 'Montserrat',
@@ -111,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                         fontSize: 16),
                   ),
                   Text(
-                    user.email ?? '',
+                    globalUser!.email ?? '',
                     style: const TextStyle(
                       overflow: TextOverflow.ellipsis,
                       fontFamily: 'Montserrat',
@@ -155,7 +152,7 @@ class _HomePageState extends State<HomePage> {
               controller: _nameController,
               decoration: InputDecoration(
                 floatingLabelBehavior: FloatingLabelBehavior.never,
-                constraints: BoxConstraints(
+                constraints: const BoxConstraints(
                   maxHeight: 50,
                 ),
                 fillColor: AppColors.level_5,
@@ -166,12 +163,12 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: _dateController,
               decoration: InputDecoration(
                 floatingLabelBehavior: FloatingLabelBehavior.never,
-                constraints: BoxConstraints(
+                constraints: const BoxConstraints(
                   maxHeight: 50,
                 ),
                 fillColor: AppColors.level_5,
@@ -190,7 +187,8 @@ class _HomePageState extends State<HomePage> {
                 );
                 if (picked != null) {
                   setState(() {
-                    _dateController.text = '${picked.day}-${picked.month}-${picked.year}';
+                    _dateController.text =
+                        '${picked.day}-${picked.month}-${picked.year}';
                   });
                 }
               },
@@ -204,27 +202,61 @@ class _HomePageState extends State<HomePage> {
               _dateController.clear();
               Navigator.of(context).pop();
             },
-            child: Text('Cancel',
+            child: const Text('Cancel',
                 style: TextStyle(
-                    color: AppColors.level_5, fontFamily: "Montserrat", fontWeight: FontWeight.bold)),
+                    color: AppColors.level_5,
+                    fontFamily: "Montserrat",
+                    fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
-            style: ButtonStyle(
+            style: const ButtonStyle(
               backgroundColor: MaterialStatePropertyAll(AppColors.level_5),
             ),
-            onPressed: () {
+            onPressed: () async {
               final String name = _nameController.text;
-              final String date = _dateController.text;
-              // You can use the name and date for further processing
+              final String dateString = _dateController.text;
+
+              DateTime? date;
+              if (dateString.isNotEmpty) {
+                final List<String> dateParts = dateString.split('-');
+                if (dateParts.length == 3) {
+                  final int day = int.tryParse(dateParts[0]) ?? 1;
+                  final int month = int.tryParse(dateParts[1]) ?? 1;
+                  final int year =
+                      int.tryParse(dateParts[2]) ?? DateTime.now().year;
+                  date = DateTime(year, month, day);
+                }
+              }
+
+              if (name.isNotEmpty && date != null) {
+                try {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    await RootRoute.Route().addRoute(
+                      routeName: name,
+                      date: date,
+                      locations: [], // Pass the locations if needed
+                    );
+                    print('Route added successfully');
+                  }
+                } catch (e) {
+                  print('Error adding route: $e');
+                }
+              } else {
+                print('Invalid route name or date');
+              }
+
               Navigator.of(context).pop();
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => AddRoutePage(),
               ));
             },
-            child: Text(
+            child: const Text(
               'Go to Maps',
-              style:
-                  TextStyle(color: AppColors.level_6, fontFamily: "Montserrat", fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: AppColors.level_6,
+                  fontFamily: "Montserrat",
+                  fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -239,6 +271,7 @@ class CardButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const CardButton({
+    super.key,
     required this.imageAsset,
     required this.buttonText,
     required this.onPressed,
@@ -271,7 +304,7 @@ class _CardButtonState extends State<CardButton> {
         });
       },
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -289,7 +322,7 @@ class _CardButtonState extends State<CardButton> {
                     color: Colors.black.withOpacity(0.1),
                     blurRadius: 8.0,
                     spreadRadius: 1.0,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ]
               : [],
@@ -303,11 +336,11 @@ class _CardButtonState extends State<CardButton> {
                 image: AssetImage(widget.imageAsset),
                 color: AppColors.level_1, // Set your desired image color
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 widget.buttonText,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: "Montserrat",
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
