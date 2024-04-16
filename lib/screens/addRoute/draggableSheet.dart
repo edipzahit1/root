@@ -41,7 +41,7 @@ class _DraggableSheetState extends State<DraggableSheet> {
       fetchAddressesFromCoordinates();
     }
   }
-
+  
   Future<void> fetchAddressesFromCoordinates() async {
     for (var location in widget.locations!) {
       double latitude = location['latitude']!;
@@ -165,7 +165,7 @@ class _DraggableSheetState extends State<DraggableSheet> {
                     child: CardWidget(
                       icon: Icons.autorenew,
                       address: selectedFormattedAddresses[index - 1],
-                      country: countrys[index - 1],
+                      country: selectedCountrys[index - 1],
                       onTap: () {
                         setState(() {
                           selectedFormattedAddresses.removeAt(index - 1);

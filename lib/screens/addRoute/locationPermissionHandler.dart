@@ -11,7 +11,7 @@ class LocationPermissionHandler {
 
   LocationPermissionHandler({required this.context}) {
     checkLocationPermission();
-    _permissionTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+    _permissionTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       checkLocationPermission();
     });
   }

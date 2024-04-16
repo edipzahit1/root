@@ -10,12 +10,12 @@ User? globalUser;
 
 void main() async {
   await dotenv.load(fileName: ".env");
+  final FIREBASE_OP_API_KEY = dotenv.env["FIREBASE_OP_API_KEY"];
 
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-      options: const FirebaseOptions(
-          //we can also add this api key to .env
-          apiKey: "AIzaSyCp0L6rfbc_3yMbd8mJlk4JBrpZAw8QzZg",
+      options: FirebaseOptions(
+          apiKey: "$FIREBASE_OP_API_KEY",
           appId: "1:662203921507:android:199fb746c61d61323cb456",
           messagingSenderId: "662203921507",
           projectId: "root-415310"));
@@ -53,7 +53,7 @@ class _RootState extends State<Root> {
         stream: _auth.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
+            return const Center(child: CircularProgressIndicator());
           } else {
             if (snapshot.hasData) {
               globalUser = snapshot.data;
