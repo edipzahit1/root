@@ -1,3 +1,5 @@
+
+import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:root/authentication/googleAuth.dart';
@@ -14,6 +16,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final GoogleAuth _auth = GoogleAuth();
+  final _pageController = PageController(initialPage: 0);
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
@@ -21,52 +24,38 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      bottomNavigationBar: AnimatedNotchBottomBar(
+              notchBottomBarController: NotchBottomBarController(index: 0),
+              color: AppColors.level_3,
+              showLabel: false,
+              notchColor: AppColors.level_6,
+              removeMargins: false,
+              bottomBarWidth: 500,
+              durationInMilliSeconds: 300,
+              bottomBarItems: [
+                BottomBarItem(
+                  inActiveItem: Image(image: AssetImage("assets/myroutes.png"), color: AppColors.level_6,),
+                  activeItem: Image(image: AssetImage("assets/myroutes.png"), color: AppColors.level_5,),
+                ),
+                BottomBarItem(
+                  inActiveItem: Image(image: AssetImage("assets/addroute.png")),
+                  activeItem: Image(image: AssetImage("assets/addroute.png")),
+                ),
+              ],
+              onTap: (index) {
+                _pageController.jumpToPage(index);
+              }, kIconSize: 25, kBottomRadius: 0,
+            ),
       backgroundColor: AppColors.level_2,
-      body: Stack(
-        fit: StackFit.expand,
+      body: PageView(
+        controller: _pageController,
+        physics: NeverScrollableScrollPhysics(),
         children: [
-          const Image(
-            image: AssetImage("assets/background.png"),
-          ),
           buildUserMailAndPhoto(),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CardButton(
-                imageAsset: "assets/addroute.png",
-                buttonText: "Add New Route",
-                onPressed: () {
-                  showAddRouteDialog();
-                },
-              ),
-              CardButton(
-                imageAsset: "assets/myroutes.png",
-                buttonText: "My Routes",
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => MyRoutesPage(),
-                  ));
-                },
-              ),
-              CardButton(
-                imageAsset: "assets/settings.png",
-                buttonText: "Settings",
-                onPressed: () {
-                  // Handle onPressed action
-                },
-              ),
-              CardButton(
-                imageAsset: "assets/myroutes.png",
-                buttonText: "Upgrade To Premium",
-                onPressed: () async {
-                  await _auth.signOutFromGoogleAccount();
-                },
-              ),
-            ],
-          ),
+          MyRoutesPage(),
         ],
       ),
+      extendBody: true,
     );
   }
 
@@ -260,96 +249,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class CardButton extends StatefulWidget {
-  final String imageAsset;
-  final String buttonText;
-  final VoidCallback onPressed;
-
-  const CardButton({
-    super.key,
-    required this.imageAsset,
-    required this.buttonText,
-    required this.onPressed,
-  });
-
-  @override
-  _CardButtonState createState() => _CardButtonState();
-}
-
-class _CardButtonState extends State<CardButton> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() {
-          _isPressed = true;
-        });
-      },
-      onTapUp: (_) {
-        setState(() {
-          _isPressed = false;
-        });
-        widget.onPressed();
-      },
-      onTapCancel: () {
-        setState(() {
-          _isPressed = false;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              _isPressed ? AppColors.level_6 : AppColors.level_5,
-              _isPressed ? AppColors.level_5 : AppColors.level_5,
-              _isPressed ? AppColors.level_5 : AppColors.level_5,
-              _isPressed ? AppColors.level_5 : AppColors.level_6,
-            ],
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-          ),
-          boxShadow: _isPressed
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8.0,
-                    spreadRadius: 1.0,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              Image(
-                height: 50,
-                image: AssetImage(widget.imageAsset),
-                color: AppColors.level_1, // Set your desired image color
-              ),
-              const SizedBox(height: 10),
-              Text(
-                widget.buttonText,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: "Montserrat",
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.level_1, // Set your desired text color
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

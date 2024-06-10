@@ -26,7 +26,7 @@ class _MyRoutesPageState extends State<MyRoutesPage> {
       backgroundColor: AppColors.level_2,
       appBar: AppBar(
         backgroundColor: AppColors.level_6,
-        title: MyTexts(text: "My Routes", fontSize: 25),
+        title: const MyTexts(text: "My Routes", fontSize: 25, fontWeight: FontWeight.bold,),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: routesStream,
@@ -114,15 +114,16 @@ class RouteCard extends StatelessWidget {
                     Expanded(
                       child: MyTexts(
                         text: routeName,
-                        fontSize: 25,
+                        fontSize: 29,
                         fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 10),
                     MyTexts(text: _formatDate(date)),
                   ],
                 ),
-                Row(
+                Row(  
                   children: <Widget>[
                     const Spacer(),
                     TextButton(
@@ -213,7 +214,7 @@ class MyTexts extends StatelessWidget {
       style: TextStyle(
         color: color ?? AppColors.level_1,
         fontSize: fontSize ?? 15,
-        fontWeight: fontWeight ?? FontWeight.bold,
+        fontWeight: fontWeight ?? FontWeight.w600,
         fontFamily: "Montserrat",
         overflow: overflow ?? TextOverflow.ellipsis,
         fontStyle: fontStyle ?? FontStyle.normal,
