@@ -1,8 +1,13 @@
+
 import 'package:flutter/material.dart';
 import 'package:root/main/main.dart';
+import 'package:root/models/location.dart';
 import 'package:root/preferences/buttons.dart';
 import 'package:root/models/route.dart' as RootRoute;
-import 'package:root/screens/addRoute/addRoutePage.dart';
+import 'package:root/preferences/my_texts.dart';
+import 'package:root/screens/addRoute/add_route_page.dart';
+import 'package:root/screens/opt/optimize.dart';
+import 'package:root/screens/showRouteAndNav/show_route.dart';
 
 class MyRoutesPage extends StatefulWidget {
   const MyRoutesPage({super.key});
@@ -24,33 +29,29 @@ class _MyRoutesPageState extends State<MyRoutesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.level_2,
-      appBar: AppBar(
-        backgroundColor: AppColors.level_6,
-        title: const MyTexts(text: "My Routes", fontSize: 25, fontWeight: FontWeight.bold,),
-      ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: routesStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator()); // Loading indicator
+            return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData) {
-            return const Text('No routes found'); // Placeholder text
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No routes found'));
           }
           List<Map<String, dynamic>> routes = snapshot.data!;
-          if (routes.isEmpty) {
-            print("EMPTYYY");
-          }
           return ListView.builder(
             itemCount: routes.length,
             itemBuilder: (context, index) {
-              List<Map<String, double>> convertedLocations = [];
+              List<Map<String, dynamic>> convertedLocations = [];
               if (routes[index]["locations"] != null) {
-                // Cast each location to Map<String, double>
                 convertedLocations =
                     (routes[index]["locations"] as List<dynamic>)
-                        .map((location) => Map<String, double>.from(location))
+                        .map((location) => {
+                              'latitude': location['latitude'],
+                              'longitude': location['longitude'],
+                              'country': location['country'],
+                              'vicinity': location['vicinity'],
+                            })
                         .toList();
               }
               return RouteCard(
@@ -60,7 +61,7 @@ class _MyRoutesPageState extends State<MyRoutesPage> {
                   RootRoute.Route()
                       .deleteRoute(routeName: routes[index]['routeName']);
                 },
-                locations: convertedLocations, // Pass the converted locations
+                locations: convertedLocations,
               );
             },
           );
@@ -74,22 +75,22 @@ class RouteCard extends StatelessWidget {
   final String routeName;
   final DateTime? date;
   final VoidCallback onDelete;
-  final List<Map<String, double>> locations;
+  final List<Map<String, dynamic>> locations;
 
   String _formatDate(DateTime? dateTime) {
     if (dateTime == null) {
-      return ''; // Return an empty string if DateTime is null
+      return '-/-/-';
     }
-    return '${dateTime.year}-${dateTime.month}-${dateTime.day}';
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
-  const RouteCard(
-      {Key? key,
-      required this.routeName,
-      required this.date,
-      required this.onDelete,
-      required this.locations})
-      : super(key: key);
+  const RouteCard({
+    Key? key,
+    required this.routeName,
+    required this.date,
+    required this.onDelete,
+    required this.locations,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -109,33 +110,51 @@ class RouteCard extends StatelessWidget {
               children: <Widget>[
                 Row(
                   children: [
-                    Icon(Icons.location_on, color: AppColors.level_5),
-                    SizedBox(width: 10),
+                    const Icon(Icons.location_on, color: AppColors.level_5),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: MyTexts(
                         text: routeName,
                         fontSize: 29,
                         fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(width: 10),
                     MyTexts(text: _formatDate(date)),
                   ],
                 ),
-                Row(  
+                Row(
                   children: <Widget>[
                     const Spacer(),
                     TextButton(
-                      child: const MyTexts(text: "Update"),
+                      child: const MyTexts(text: "Update",),
                       onPressed: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => AddRoutePage()));
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => AddRoutePage(
+                                  initialLocations: locations,
+                                  routeName: routeName,
+                                )));
                       },
                     ),
                     TextButton(
-                      child: const MyTexts(text: "Start Navigation"),
-                      onPressed: () {
-                        //WE WILL CALL GOOGLE MAPS WITH NAVIGATION
+                      child: const MyTexts(text: "Show Route"),
+                      onPressed: () async {
+                        final isOptimized =
+                            await RootRoute.Route().isRouteOptimized(routeName);
+
+                        if (!isOptimized) {
+                          final shouldOptimize = await _showOptimizeDialog(context);
+                          if (shouldOptimize == true) {
+                            await _optimizeRoute();
+                          } else {
+                            // Do not navigate if the user does not want to optimize
+                            return;
+                          }
+                        }
+                        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+                          return RoutePage(routeLocations: locations, routeName: routeName);
+                        },));
                       },
                     ),
                     TextButton(
@@ -154,6 +173,48 @@ class RouteCard extends StatelessWidget {
     );
   }
 
+  Future<bool?> _showOptimizeDialog(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const MyTexts(text: "Optimize Route", fontSize: 25),
+          content: const MyTexts(
+            text: 'The route is not optimized. Do you want to optimize it?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const MyTexts(text: "Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const MyTexts(text: "Optimize"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _optimizeRoute() async {
+    RouteOptimizer optimizer = RouteOptimizer(
+      routeName: routeName,
+      locations: locations.map((loc) => LocationModel(
+        latitude: loc['latitude'],
+        longitude: loc['longitude'],
+        country: loc['country'],
+        vicinity: loc['vicinity'],
+      )).toList(),
+    );
+
+    await optimizer.updateRouteWithOptimizedOrder();
+  }
+
   Future<void> showDeleteConfirmationDialog(
       BuildContext context, VoidCallback onDeleted) async {
     showDialog<bool>(
@@ -169,56 +230,20 @@ class RouteCard extends StatelessWidget {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context)
-                    .pop(false); // Close the dialog and return false
+                Navigator.of(context).pop(false);
               },
               child: const MyTexts(text: "Cancel"),
             ),
             TextButton(
               onPressed: () {
                 onDelete();
-                Navigator.of(context)
-                    .pop(true); // Close the dialog and return true
+                Navigator.of(context).pop(true);
               },
               child: const MyTexts(text: "Delete"),
             ),
           ],
         );
       },
-    );
-  }
-}
-
-class MyTexts extends StatelessWidget {
-  final String text;
-  final Color? color;
-  final double? fontSize;
-  final FontWeight? fontWeight;
-  final FontStyle? fontStyle;
-  final TextOverflow? overflow;
-
-  const MyTexts({
-    Key? key,
-    required this.text,
-    this.color,
-    this.fontSize,
-    this.fontWeight,
-    this.fontStyle,
-    this.overflow,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: color ?? AppColors.level_1,
-        fontSize: fontSize ?? 15,
-        fontWeight: fontWeight ?? FontWeight.w600,
-        fontFamily: "Montserrat",
-        overflow: overflow ?? TextOverflow.ellipsis,
-        fontStyle: fontStyle ?? FontStyle.normal,
-      ),
     );
   }
 }

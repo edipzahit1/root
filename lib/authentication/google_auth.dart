@@ -32,7 +32,7 @@ class GoogleAuth {
       await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
     } catch(e) {
-      print("Exception on signing out" + e.toString());
+      print("Exception on signing out$e");
     }
   } 
 }

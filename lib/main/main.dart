@@ -4,18 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:root/preferences/buttons.dart';
 import 'package:root/screens/home/home.dart';
-import 'package:root/screens/signIn/signInPage.dart';
+import 'package:root/screens/signIn/sign_in_page.dart';
 
 User? globalUser;
 
 void main() async {
   await dotenv.load(fileName: ".env");
-  final FIREBASE_OP_API_KEY = dotenv.env["FIREBASE_OP_API_KEY"];
+  final fireBaseOpApiKey = dotenv.env["FIREBASE_OP_API_KEY"];
 
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
       options: FirebaseOptions(
-          apiKey: "$FIREBASE_OP_API_KEY",
+          apiKey: "$fireBaseOpApiKey",
           appId: "1:662203921507:android:199fb746c61d61323cb456",
           messagingSenderId: "662203921507",
           projectId: "root-415310"));
@@ -38,13 +38,11 @@ class MyApp extends StatelessWidget {
 
 class Root extends StatefulWidget {
   const Root({super.key});
-
   @override
   State<Root> createState() => _RootState();
 }
 
 class _RootState extends State<Root> {
-  
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
@@ -57,9 +55,9 @@ class _RootState extends State<Root> {
           } else {
             if (snapshot.hasData) {
               globalUser = snapshot.data;
-              return HomePage();
+              return const HomePage();
             } else {
-              return const SignInPage();              
+              return const SignInPage();
             }
           }
         });

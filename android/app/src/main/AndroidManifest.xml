@@ -34,4 +34,20 @@
         <meta-data android:name="com.google.android.geo.API_KEY"
                android:value="AIzaSyD97KYympDAv48r11X0aQV6appwXRhBK4I"/>    <!--GOOGLE MAPS API-->
     </application>
+    <queries>
+        <!-- If your app opens email links -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <!-- If your app opens URLs in a browser -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
 </manifest>

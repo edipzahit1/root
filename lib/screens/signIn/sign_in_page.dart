@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:root/authentication/googleAuth.dart';
+import 'package:root/authentication/google_auth.dart';
 import 'package:root/preferences/buttons.dart';
 
 class SignInPage extends StatefulWidget {
@@ -43,7 +43,7 @@ class _SignInPageState extends State<SignInPage> {
         child: Expanded(
           child: ElevatedButton(
             style: const ButtonStyle(
-              backgroundColor: MaterialStatePropertyAll(AppColors.level_5),
+              backgroundColor: WidgetStatePropertyAll(AppColors.level_5),
             ),
             onPressed: () async {
               await _auth.signInToGoogleAccount();

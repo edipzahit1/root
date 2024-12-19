@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:root/preferences/buttons.dart';
-import 'package:root/screens/myRoutes/myRoutes.dart';
+import 'package:root/preferences/my_texts.dart';
 
 class LocationPermissionHandler {
   final BuildContext context;
@@ -42,7 +42,7 @@ class LocationPermissionHandler {
           actions: <Widget>[
             ElevatedButton(
               style: const ButtonStyle(
-                backgroundColor: MaterialStatePropertyAll(AppColors.level_3),
+                backgroundColor: WidgetStatePropertyAll(AppColors.level_3),
               ),
               child: const MyTexts(text: 'OK'),
               onPressed: () async {
@@ -68,7 +68,7 @@ class LocationPermissionHandler {
           actions: <Widget>[
             ElevatedButton(
               style: const ButtonStyle(
-                backgroundColor: MaterialStatePropertyAll(AppColors.level_3),
+                backgroundColor: WidgetStatePropertyAll(AppColors.level_3),
               ),
               child: const MyTexts(text: 'OK'),
               onPressed: () async {

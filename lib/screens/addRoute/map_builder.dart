@@ -2,18 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_place/google_place.dart';
+import 'package:root/models/location.dart';
 import 'package:root/preferences/buttons.dart';
-import 'package:root/preferences/mapStyle.dart';
-import 'package:root/screens/addRoute/locationPermissionHandler.dart';
+import 'package:root/preferences/map_style.dart';
+import 'package:root/screens/addRoute/location_permission_handler.dart';
+import 'package:http/http.dart' as http;
 
 class BuildMap extends StatefulWidget {
-  final List<Map<String, double>>? locations;
+  final List<LocationModel>? locations;
   final List<Map<String, double>>? orderedRoute;
-  const BuildMap({Key? key, this.locations, this.orderedRoute})
+  final Function(LocationModel) onLocationAdded;
+  const BuildMap(
+      {Key? key,
+      this.locations,
+      this.orderedRoute,
+      required this.onLocationAdded,})
       : super(key: key);
 
   @override
@@ -21,14 +26,11 @@ class BuildMap extends StatefulWidget {
 }
 
 class _BuildMapState extends State<BuildMap> {
-  final places_API_KEY = dotenv.env["PLACES_API_KEY"];
-
   late CameraPosition initialCameraPosition = const CameraPosition(
-    target: LatLng(37, 122), 
-    zoom: 10, 
+    target: LatLng(37, 122),
+    zoom: 10,
   );
   late GoogleMapController googleMapController;
-  late GooglePlace googlePlace;
   String? _mapStyle;
   final Set<Marker> _markers = {};
 
@@ -39,6 +41,11 @@ class _BuildMapState extends State<BuildMap> {
     super.initState();
     _mapStyle = jsonEncode(myMapStyle);
     _permissionHandler = LocationPermissionHandler(context: context);
+
+    widget.locations?.forEach((location) {
+      addMarker(location);
+    });
+
     _getInitialPosition();
   }
 
@@ -48,17 +55,27 @@ class _BuildMapState extends State<BuildMap> {
     super.dispose();
   }
 
+  void addMarker(LocationModel location) async {
+    setState(() {
+      _markers.add(Marker(
+        markerId: MarkerId("marker_${location.latitude}_${location.longitude}"),
+        position: LatLng(location.latitude, location.longitude),
+        infoWindow: InfoWindow(title: location.vicinity, snippet: location.country),
+      ));
+    });
+  }
+
+  void removeMarker(LocationModel location) {
+    setState(() {
+      _markers.removeWhere((marker) =>
+          marker.markerId == MarkerId("marker_${location.latitude}_${location.longitude}"));
+    });
+  }
+
   Future<void> _getInitialPosition() async {
     try {
       Position position = await _determinePosition();
       setState(() {
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position: LatLng(position.latitude, position.longitude),
-          ),
-        );
-
         initialCameraPosition = CameraPosition(
           target: LatLng(position.latitude, position.longitude),
           zoom: 10,
@@ -74,32 +91,33 @@ class _BuildMapState extends State<BuildMap> {
     return Stack(
       children: [
         GoogleMap(
-          markers: _markers,
+          myLocationButtonEnabled: false,
+          myLocationEnabled: true,
+          markers: _markers.toSet(),
           onLongPress: (LatLng latLng) async {
-            setState(() {
-              _onMapLongPress(latLng);
-              _markers.add(
-                Marker(
-                  markerId: MarkerId(latLng.toString()),
-                  position: latLng,
-                  infoWindow: const InfoWindow(
-                    title: 'Long Pressed Location',
-                  ),
-                ),
-              );
-            });
+            _onMapLongPress(latLng);
           },
           compassEnabled: true,
           zoomControlsEnabled: false,
           onMapCreated: (controller) {
             googleMapController = controller;
             googleMapController.setMapStyle(_mapStyle);
+            _moveCameraToCurrentUserLocation();
           },
           initialCameraPosition: initialCameraPosition,
         ),
         buildMyLocationButton(),
       ],
     );
+  }
+
+  Future<void> _moveCameraToCurrentUserLocation() async {
+    var position = await _determinePosition();
+    googleMapController.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(
+            target: LatLng(position.latitude, position.longitude),
+            zoom: 15.0 // Adjust zoom level as necessary
+            )));
   }
 
   Widget buildMyLocationButton() {
@@ -127,17 +145,54 @@ class _BuildMapState extends State<BuildMap> {
     );
   }
 
-  Future<void> _onMapLongPress(LatLng latLng) async {
-    List<Placemark> placemarks =
-        await placemarkFromCoordinates(latLng.latitude, latLng.longitude);
+  void _onMapLongPress(LatLng latLng) async {
+    try {
+      Map<String, String> address = await getAddressFromLatLng(latLng.latitude, latLng.longitude);
+      LocationModel location = LocationModel(
+        latitude: latLng.latitude,
+        longitude: latLng.longitude,
+        vicinity: address['vicinity'] ?? 'Unknown Vicinity',
+        country: address['country'] ?? 'Unknown Country',
+      );
 
-    if (placemarks.isNotEmpty) {
-      Placemark firstPlacemark = placemarks[0];
+      addMarker(location);
+      widget.onLocationAdded(location);
+    } catch (e) {
+      print('Failed to get address: $e');
+    }
+  }
 
-      print('Name: ${firstPlacemark.name}');
-      print('Street: ${firstPlacemark.street}');
-      print('City: ${firstPlacemark.locality}');
-      print('Postal Code: ${firstPlacemark.postalCode}');
+  Future<Map<String, String>> getAddressFromLatLng(double lat, double lng) async {
+    final apiKey = dotenv.env['MAPS_API_KEY'];
+    final url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'OK') {
+        final results = data['results'][0];
+        String country = '';
+        String vicinity = '';
+
+        List addressComponents = results['address_components'];
+
+        for (var component in addressComponents) {
+          List types = component['types'];
+          if (types.contains('country')) {
+            country = component['long_name'];
+          }
+          if (types.contains('sublocality') || types.contains('locality')) {
+            vicinity = component['long_name'];
+          }
+        }
+
+        return {'vicinity': vicinity, 'country': country};
+      } else {
+        throw Exception('Failed to load address');
+      }
+    } else {
+      throw Exception('Failed to load address');
     }
   }
 
